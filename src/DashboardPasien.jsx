@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Users, UserPlus, ListOrdered, Clock, CheckCircle2, ChevronRight } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { Users, UserPlus, ListOrdered, Clock, CheckCircle2, ChevronRight, RefreshCw } from "lucide-react";
 
 const toneStyles = {
   hero: { bg: "#0F172A", fg: "#FFFFFF", chipBg: "rgba(255,255,255,0.1)", chipFg: "#93C5FD" },
@@ -9,7 +9,12 @@ const toneStyles = {
   green: { bg: "#FFFFFF", fg: "#14532D", chipBg: "#F0FDF4", chipFg: "#16A34A" },
 };
 
-function StatBubble({ icon, label, value, tone = "blue", hero = false, suffix }) {
+// Ganti dengan URL backend kamu jika tidak memakai proxy Vite
+const API_URL = "/api/dashboard/stats";
+// Interval auto-refresh (ms). Set ke 0 untuk mematikan auto-refresh.
+const REFRESH_INTERVAL = 15000;
+
+function StatBubble({ icon, label, value, tone = "blue", hero = false, loading }) {
   const t = toneStyles[tone];
   return (
     <div
@@ -22,8 +27,7 @@ function StatBubble({ icon, label, value, tone = "blue", hero = false, suffix })
         </span>
       </div>
       <div className="db-card-value">
-        {value}
-        {suffix && <span className="db-card-suffix">{suffix}</span>}
+        {loading ? <span className="db-skeleton" /> : value}
       </div>
       <div className="db-card-label" style={hero ? { color: "#94A3B8" } : undefined}>
         {label}
@@ -32,13 +36,10 @@ function StatBubble({ icon, label, value, tone = "blue", hero = false, suffix })
   );
 }
 
-export default function DashboardPasien({
-  totalPasien = 4820,
-  pasienHariIni = 63,
-  antreanHariIni = 41,
-  pasienMenunggu = 12,
-  pasienSelesai = 29,
-} = {}) {
+export default function DashboardPasien() {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [tanggal] = useState(() =>
     new Date().toLocaleDateString("id-ID", {
       weekday: "long",
@@ -48,29 +49,55 @@ export default function DashboardPasien({
     })
   );
 
+  const fetchStats = useCallback(async ({ silent } = {}) => {
+    if (!silent) setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(API_URL);
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const data = await res.json();
+      setStats(data);
+    } catch (err) {
+      console.error("Gagal memuat statistik dashboard:", err);
+      setError("Tidak dapat memuat data. Periksa koneksi ke server.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+    if (REFRESH_INTERVAL > 0) {
+      const id = setInterval(() => fetchStats({ silent: true }), REFRESH_INTERVAL);
+      return () => clearInterval(id);
+    }
+  }, [fetchStats]);
+
+  const isLoading = loading && !stats;
+
   const flow = [
     {
       icon: <UserPlus size={20} />,
       label: "Total Pasien Hari Ini",
-      value: pasienHariIni,
+      value: stats?.pasienHariIni,
       tone: "blue",
     },
     {
       icon: <ListOrdered size={20} />,
       label: "Total Antrean Hari Ini",
-      value: antreanHariIni,
+      value: stats?.antreanHariIni,
       tone: "teal",
     },
     {
       icon: <Clock size={20} />,
       label: "Total Pasien Menunggu",
-      value: pasienMenunggu,
+      value: stats?.pasienMenunggu,
       tone: "amber",
     },
     {
       icon: <CheckCircle2 size={20} />,
       label: "Total Pasien Selesai Dilayani",
-      value: pasienSelesai,
+      value: stats?.pasienSelesai,
       tone: "green",
     },
   ];
@@ -111,6 +138,12 @@ export default function DashboardPasien({
           margin: 0;
         }
 
+        .db-header-right {
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+        }
+
         .db-date-chip {
           font-size: 0.82rem;
           font-weight: 500;
@@ -120,6 +153,54 @@ export default function DashboardPasien({
           border-radius: 999px;
           padding: 0.45rem 1rem;
           text-transform: capitalize;
+        }
+
+        .db-refresh-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          border-radius: 999px;
+          border: 1px solid #E2E8F0;
+          background: #FFFFFF;
+          color: #475569;
+          cursor: pointer;
+        }
+
+        .db-refresh-btn:hover {
+          background: #F1F5F9;
+        }
+
+        .db-refresh-btn.spinning svg {
+          animation: db-spin 0.8s linear infinite;
+        }
+
+        @keyframes db-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        .db-error-banner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #FEF2F2;
+          border: 1px solid #FECACA;
+          color: #B91C1C;
+          border-radius: 12px;
+          padding: 0.8rem 1.1rem;
+          font-size: 0.88rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .db-error-banner button {
+          background: none;
+          border: none;
+          color: #B91C1C;
+          font-weight: 600;
+          cursor: pointer;
+          text-decoration: underline;
         }
 
         .db-hero-row {
@@ -175,18 +256,28 @@ export default function DashboardPasien({
           font-weight: 700;
           font-size: 2rem;
           line-height: 1.1;
+          min-height: 2.2rem;
+          display: flex;
+          align-items: center;
         }
 
         .db-card-hero .db-card-value {
           font-size: 2.75rem;
         }
 
-        .db-card-suffix {
-          font-family: 'Inter', sans-serif;
-          font-weight: 500;
-          font-size: 0.95rem;
-          margin-left: 0.35rem;
-          opacity: 0.7;
+        .db-skeleton {
+          display: inline-block;
+          width: 70px;
+          height: 1.6rem;
+          border-radius: 6px;
+          background: linear-gradient(90deg, rgba(148,163,184,0.25) 25%, rgba(148,163,184,0.4) 37%, rgba(148,163,184,0.25) 63%);
+          background-size: 400% 100%;
+          animation: db-shimmer 1.4s ease infinite;
+        }
+
+        @keyframes db-shimmer {
+          0% { background-position: 100% 50%; }
+          100% { background-position: 0 50%; }
         }
 
         .db-card-label {
@@ -215,16 +306,34 @@ export default function DashboardPasien({
           <h1 className="db-title">Dashboard pasien</h1>
           <p className="db-subtitle">Ringkasan aktivitas layanan pasien</p>
         </div>
-        <span className="db-date-chip">{tanggal}</span>
+        <div className="db-header-right">
+          <span className="db-date-chip">{tanggal}</span>
+          <button
+            className={`db-refresh-btn${loading ? " spinning" : ""}`}
+            onClick={() => fetchStats()}
+            aria-label="Muat ulang data"
+            title="Muat ulang data"
+          >
+            <RefreshCw size={16} />
+          </button>
+        </div>
       </div>
+
+      {error && (
+        <div className="db-error-banner">
+          <span>{error}</span>
+          <button onClick={() => fetchStats()}>Coba lagi</button>
+        </div>
+      )}
 
       <div className="db-hero-row">
         <StatBubble
           icon={<Users size={22} />}
           label="Total pasien terdaftar (keseluruhan)"
-          value={totalPasien.toLocaleString("id-ID")}
+          value={stats?.totalPasien?.toLocaleString("id-ID")}
           tone="hero"
           hero
+          loading={isLoading}
         />
       </div>
 
@@ -237,6 +346,7 @@ export default function DashboardPasien({
               label={item.label}
               value={item.value}
               tone={item.tone}
+              loading={isLoading}
             />
             {i < flow.length - 1 && (
               <div className="db-flow-arrow" key={`arrow-${i}`}>
