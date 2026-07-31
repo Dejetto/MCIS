@@ -1,47 +1,54 @@
 import { useState } from "react";
 
 // Ganti dengan URL backend kamu jika tidak memakai proxy Vite
-const LOGIN_URL = "/api/auth/login";
+const REGISTER_URL = "/api/auth/register";
 
-export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
-  const [noHp, setnumber] = useState("");
+export default function RegisterPage({ onRegisterSuccess, onSwitchToLogin }) {
+  const [namaPasien, setNamaPasien] = useState("");
+  const [noHp, setNoHp] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
-    if (!noHp || !password) {
-      setError("Isi nomor handphone dan kata sandi terlebih dahulu.");
+    if (!namaPasien || !noHp || !password || !confirmPassword) {
+      setError("Semua kolom wajib diisi.");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Kata sandi minimal 6 karakter.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Konfirmasi kata sandi tidak cocok.");
       return;
     }
 
     setLoading(true);
     try {
-      const res = await fetch(LOGIN_URL, {
+      const res = await fetch(REGISTER_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ noHp, password }),
+        body: JSON.stringify({ namaPasien, noHp, password }),
       });
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.message || "Nomor HP atau kata sandi salah.");
+        setError(data.message || "Gagal mendaftar. Coba lagi.");
         return;
       }
 
-      // Simpan token: localStorage kalau "Ingat saya" dicentang, sessionStorage kalau tidak
-      const storage = remember ? window.localStorage : window.sessionStorage;
-      storage.setItem("mcis_token", data.token);
-      storage.setItem("mcis_user", JSON.stringify(data.user));
-
-      onLoginSuccess?.(data.token, data.user);
+      setSuccess("Registrasi berhasil! Mengalihkan ke halaman masuk...");
+      setTimeout(() => onRegisterSuccess?.(), 1200);
     } catch (err) {
-      console.error("Gagal login:", err);
+      console.error("Gagal registrasi:", err);
       setError("Tidak dapat terhubung ke server. Periksa koneksi kamu.");
     } finally {
       setLoading(false);
@@ -242,36 +249,10 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
           padding: 4px 6px;
         }
 
-        .lp-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin: 0.3rem 0 1.4rem;
-        }
-
-        .lp-remember {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 0.85rem;
-          color: #4B5566;
-        }
-
-        .lp-remember input {
-          accent-color: #4F8FE8;
-          width: 14px;
-          height: 14px;
-        }
-
-        .lp-forgot {
-          font-size: 0.85rem;
-          color: #4F8FE8;
-          text-decoration: none;
-          font-weight: 500;
-        }
-
-        .lp-forgot:hover {
-          text-decoration: underline;
+        .lp-hint {
+          font-size: 0.78rem;
+          color: #8A93A0;
+          margin: 0.35rem 0 0;
         }
 
         .lp-error {
@@ -280,7 +261,16 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
           background: #FCEBEB;
           border-radius: 8px;
           padding: 0.55rem 0.75rem;
-          margin: -0.3rem 0 1rem;
+          margin: 0 0 1rem;
+        }
+
+        .lp-success {
+          font-size: 0.83rem;
+          color: #15803D;
+          background: #ECFDF3;
+          border-radius: 8px;
+          padding: 0.55rem 0.75rem;
+          margin: 0 0 1rem;
         }
 
         .lp-submit {
@@ -295,6 +285,7 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
           border-radius: 10px;
           cursor: pointer;
           transition: background 0.15s ease, transform 0.05s ease;
+          margin-top: 0.4rem;
         }
 
         .lp-submit:hover {
@@ -349,7 +340,7 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
           <p className="lp-eyebrow">Akses aman</p>
           <h1 className="lp-headline">Satu akun untuk semua alur kerjamu</h1>
           <p className="lp-subtext">
-            Masuk untuk melanjutkan ke ruang kerja, proyek, dan data yang sudah kamu atur.
+            Daftar sekali untuk mengakses ruang kerja, proyek, dan data pasienmu kapan saja.
           </p>
           <svg className="lp-trace" viewBox="0 0 360 90" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
@@ -368,11 +359,27 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
 
       <div className="lp-panel-form">
         <div className="lp-form-card">
-          <h2 className="lp-form-title">Masuk ke akun</h2>
-          <p className="lp-form-sub">Masukkan kredensialmu untuk melanjutkan.</p>
+          <h2 className="lp-form-title">Buat akun baru</h2>
+          <p className="lp-form-sub">Isi data di bawah untuk membuat akun pasien.</p>
 
           <form onSubmit={handleSubmit} noValidate>
             {error && <div className="lp-error">{error}</div>}
+            {success && <div className="lp-success">{success}</div>}
+
+            <div className="lp-field">
+              <label className="lp-label" htmlFor="namaPasien">Nama lengkap</label>
+              <div className="lp-input-wrap">
+                <input
+                  id="namaPasien"
+                  type="text"
+                  className="lp-input"
+                  placeholder="Masukkan nama lengkap"
+                  value={namaPasien}
+                  onChange={(e) => setNamaPasien(e.target.value)}
+                  autoComplete="name"
+                />
+              </div>
+            </div>
 
             <div className="lp-field">
               <label className="lp-label" htmlFor="noHp">Nomor Handphone</label>
@@ -383,8 +390,8 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
                   className="lp-input"
                   placeholder="masukkan nomor handphone"
                   value={noHp}
-                  onChange={(e) => setnumber(e.target.value)}
-                  autoComplete="noHp"
+                  onChange={(e) => setNoHp(e.target.value)}
+                  autoComplete="tel"
                 />
               </div>
             </div>
@@ -397,10 +404,10 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
                   type={showPassword ? "text" : "password"}
                   className="lp-input"
                   style={{ paddingRight: "3.2rem" }}
-                  placeholder="Masukkan kata sandi"
+                  placeholder="Minimal 6 karakter"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
@@ -412,33 +419,37 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
               </div>
             </div>
 
-            <div className="lp-row">
-              <label className="lp-remember">
+            <div className="lp-field">
+              <label className="lp-label" htmlFor="confirmPassword">Konfirmasi kata sandi</label>
+              <div className="lp-input-wrap">
                 <input
-                  type="checkbox"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  className="lp-input"
+                  placeholder="Ulangi kata sandi"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
                 />
-                Ingat saya
-              </label>
-              <a href="#" className="lp-forgot">Lupa kata sandi?</a>
+              </div>
+              <p className="lp-hint">Gunakan kombinasi huruf dan angka agar lebih aman.</p>
             </div>
 
             <button type="submit" className="lp-submit" disabled={loading}>
-              {loading ? "Memproses..." : "Masuk"}
+              {loading ? "Memproses..." : "Daftar"}
             </button>
           </form>
 
           <p className="lp-signup">
-            Belum punya akun?{" "}
+            Sudah punya akun?{" "}
             <a
               href="#"
               onClick={(e) => {
                 e.preventDefault();
-                onSwitchToRegister?.();
+                onSwitchToLogin?.();
               }}
             >
-              Daftar
+              Masuk
             </a>
           </p>
         </div>

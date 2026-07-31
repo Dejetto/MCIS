@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Users, UserPlus, ListOrdered, Clock, CheckCircle2, ChevronRight, RefreshCw } from "lucide-react";
+import { Users, UserPlus, ListOrdered, Clock, CheckCircle2, ChevronRight, RefreshCw, LogOut } from "lucide-react";
 
 const toneStyles = {
   hero: { bg: "#0F172A", fg: "#FFFFFF", chipBg: "rgba(255,255,255,0.1)", chipFg: "#93C5FD" },
@@ -36,7 +36,7 @@ function StatBubble({ icon, label, value, tone = "blue", hero = false, loading }
   );
 }
 
-export default function DashboardPasien() {
+export default function DashboardPasien({ onLogout }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -53,7 +53,12 @@ export default function DashboardPasien() {
     if (!silent) setLoading(true);
     setError("");
     try {
-      const res = await fetch(API_URL);
+      const token =
+        window.localStorage.getItem("mcis_token") ||
+        window.sessionStorage.getItem("mcis_token");
+      const res = await fetch(API_URL, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!res.ok) throw new Error(`Status ${res.status}`);
       const data = await res.json();
       setStats(data);
@@ -315,6 +320,14 @@ export default function DashboardPasien() {
             title="Muat ulang data"
           >
             <RefreshCw size={16} />
+          </button>
+          <button
+            className="db-refresh-btn"
+            onClick={onLogout}
+            aria-label="Keluar"
+            title="Keluar"
+          >
+            <LogOut size={16} />
           </button>
         </div>
       </div>
