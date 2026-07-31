@@ -1,0 +1,430 @@
+{
+  "info": {
+    "name": "MCIS - Mini Clinic Information System",
+    "description": "Koleksi seluruh REST API MCIS. Jalankan request login (Auth) lebih dulu untuk role yang ingin diuji — variable {{token}} akan terisi otomatis lewat test script.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login - Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"noHp\": \"081200000001\",\n  \"password\": \"admin123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.success) pm.collectionVariables.set('token', json.data.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Dokter",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"noHp\": \"081200000002\",\n  \"password\": \"dokter123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.success) pm.collectionVariables.set('token', json.data.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Petugas",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"noHp\": \"081200000000\",\n  \"password\": \"petugas123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.success) pm.collectionVariables.set('token', json.data.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/auth/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Master Data Pasien",
+      "item": [
+        {
+          "name": "List Pasien (search+pagination)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/pasien?page=1&limit=10&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pasien"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Detail Pasien",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/pasien/1"
+          }
+        },
+        {
+          "name": "Tambah Pasien",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/pasien",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"namaPasien\": \"Budi Santoso\",\n  \"nik\": \"3201010101010001\",\n  \"jenisKelamin\": \"Laki-laki\",\n  \"tanggalLahir\": \"1990-05-10\",\n  \"noTelepon\": \"081211112222\",\n  \"alamat\": \"Jl. Melati No. 1\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Ubah Pasien",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/pasien/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"namaPasien\": \"Budi Santoso\",\n  \"nik\": \"3201010101010001\",\n  \"jenisKelamin\": \"Laki-laki\",\n  \"tanggalLahir\": \"1990-05-10\",\n  \"noTelepon\": \"081211112222\",\n  \"alamat\": \"Jl. Melati No. 2\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Hapus Pasien",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/pasien/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Master Data Dokter/Poli/Obat",
+      "item": [
+        {
+          "name": "List Dokter",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/dokter"
+          }
+        },
+        {
+          "name": "Tambah Dokter (admin only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/dokter",
+            "body": { "mode": "raw", "raw": "{\n  \"namaDokter\": \"dr. Budi\",\n  \"spesialisDokter\": \"Umum\"\n}" }
+          }
+        },
+        {
+          "name": "Ubah Dokter (admin only)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/dokter/1",
+            "body": { "mode": "raw", "raw": "{\n  \"namaDokter\": \"dr. Andi Saputra\",\n  \"spesialisDokter\": \"Dokter Umum\"\n}" }
+          }
+        },
+        {
+          "name": "Hapus Dokter (admin only)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/dokter/1"
+          }
+        },
+        {
+          "name": "List Poli",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/poli"
+          }
+        },
+        {
+          "name": "Tambah Poli (admin only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/poli",
+            "body": { "mode": "raw", "raw": "{\n  \"namaPoli\": \"Poli Gigi\",\n  \"kodePoli\": \"C\"\n}" }
+          }
+        },
+        {
+          "name": "List Obat",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/obat"
+          }
+        },
+        {
+          "name": "Tambah Obat (admin only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/obat",
+            "body": { "mode": "raw", "raw": "{\n  \"namaObat\": \"Ibuprofen 400mg\",\n  \"stokObat\": 100\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Registrasi",
+      "item": [
+        {
+          "name": "List Registrasi",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/registrasi"
+          }
+        },
+        {
+          "name": "Daftarkan Kunjungan",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/registrasi",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_pasien\": 1,\n  \"id_dokter\": 1,\n  \"id_poli\": 1,\n  \"pembayaran\": \"BPJS\",\n  \"keluhanAwal\": \"Demam 2 hari\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Ubah Registrasi",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/registrasi/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dokter\": 1,\n  \"id_poli\": 1,\n  \"pembayaran\": \"Tunai\",\n  \"keluhanAwal\": \"Demam 2 hari, sudah minum obat\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Antrian",
+      "item": [
+        {
+          "name": "List Antrian (hari ini)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/antrian"
+          }
+        },
+        {
+          "name": "Buat Antrian (untuk registrasi tanpa antrian)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/antrian",
+            "body": { "mode": "raw", "raw": "{\n  \"id_registrasi\": 1\n}" }
+          }
+        },
+        {
+          "name": "Panggil Antrian (menunggu -> check_in)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/antrian/1/panggil"
+          }
+        },
+        {
+          "name": "Ubah Status Antrian (generic)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/antrian/1/status",
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"pemeriksaan\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pembayaran",
+      "item": [
+        {
+          "name": "List Pembayaran",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/pembayaran"
+          }
+        },
+        {
+          "name": "Catat Pembayaran",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/pembayaran/1",
+            "body": { "mode": "raw", "raw": "{\n  \"nominal\": 150000,\n  \"metodePembayaran\": \"Tunai\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Medical Records (Pemeriksaan Dokter)",
+      "item": [
+        {
+          "name": "Riwayat Rekam Medis Pasien",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/medical-records/1"
+          }
+        },
+        {
+          "name": "Simpan Hasil Pemeriksaan (SOAP + Tindakan + Resep)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/medical-records",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_registrasi\": 1,\n  \"keluhanPasien\": \"Demam, batuk\",\n  \"tekananDarah\": \"120/80\",\n  \"suhuTubuh\": 38.2,\n  \"beratBadan\": 60,\n  \"tinggiBadan\": 165,\n  \"diagnosa\": \"ISPA\",\n  \"rencanaTerapi\": \"Istirahat, banyak minum\",\n  \"tindakanMedis\": [\n    { \"namaTindakan\": \"Cek tensi\", \"catatan\": \"normal\" }\n  ],\n  \"resep\": [\n    { \"id_obat\": 1, \"dosisObat\": \"3x1\", \"instruksiObat\": \"sesudah makan\" }\n  ]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Prescriptions",
+      "item": [
+        {
+          "name": "Resep by Rekam Medis",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/prescriptions/1"
+          }
+        },
+        {
+          "name": "Tambah Resep",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/prescriptions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_rekammedis\": 1,\n  \"id_obat\": 2,\n  \"dosisObat\": \"2x1\",\n  \"instruksiObat\": \"sebelum makan\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Statistik Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/dashboard/stats"
+          }
+        }
+      ]
+    }
+  ]
+}

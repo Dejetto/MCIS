@@ -3,7 +3,7 @@ import { useState } from "react";
 // Ganti dengan URL backend kamu jika tidak memakai proxy Vite
 const LOGIN_URL = "/api/auth/login";
 
-export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
+export default function LoginPage({ onLoginSuccess }) {
   const [noHp, setnumber] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -27,19 +27,21 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ noHp, password }),
       });
-      const data = await res.json();
+      const json = await res.json();
 
-      if (!res.ok) {
-        setError(data.message || "Nomor HP atau kata sandi salah.");
+      if (!res.ok || !json.success) {
+        setError(json.message || "Nomor HP atau kata sandi salah.");
         return;
       }
 
+      const { token, user } = json.data;
+
       // Simpan token: localStorage kalau "Ingat saya" dicentang, sessionStorage kalau tidak
       const storage = remember ? window.localStorage : window.sessionStorage;
-      storage.setItem("mcis_token", data.token);
-      storage.setItem("mcis_user", JSON.stringify(data.user));
+      storage.setItem("mcis_token", token);
+      storage.setItem("mcis_user", JSON.stringify(user));
 
-      onLoginSuccess?.(data.token, data.user);
+      onLoginSuccess?.(token, user);
     } catch (err) {
       console.error("Gagal login:", err);
       setError("Tidak dapat terhubung ke server. Periksa koneksi kamu.");
@@ -310,23 +312,6 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
           cursor: default;
         }
 
-        .lp-signup {
-          text-align: center;
-          font-size: 0.85rem;
-          color: #6B7684;
-          margin-top: 1.6rem;
-        }
-
-        .lp-signup a {
-          color: #4F8FE8;
-          font-weight: 500;
-          text-decoration: none;
-        }
-
-        .lp-signup a:hover {
-          text-decoration: underline;
-        }
-
         @media (max-width: 860px) {
           .lp-panel-brand {
             display: none;
@@ -363,7 +348,7 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
           </svg>
         </div>
 
-        <p className="lp-foot-note">© {new Date().getFullYear()} MCIS Platform</p>
+        <p className="lp-foot-note">© {new Date().getFullYear()} Sinergi Platform</p>
       </div>
 
       <div className="lp-panel-form">
@@ -428,19 +413,6 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
               {loading ? "Memproses..." : "Masuk"}
             </button>
           </form>
-
-          <p className="lp-signup">
-            Belum punya akun?{" "}
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                onSwitchToRegister?.();
-              }}
-            >
-              Daftar
-            </a>
-          </p>
         </div>
       </div>
     </div>
