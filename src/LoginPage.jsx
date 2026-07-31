@@ -363,7 +363,7 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
           </svg>
         </div>
 
-        <p className="lp-foot-note">© {new Date().getFullYear()} Sinergi Platform</p>
+        <p className="lp-foot-note">© {new Date().getFullYear()} MCIS Platform</p>
       </div>
 
       <div className="lp-panel-form">
