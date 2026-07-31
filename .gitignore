@@ -7,12 +7,6 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Komentar: File konfigurasi environment (sering berisi data sensitif)
-.env
-.env.local
-.env.*.local
-!.env.example # Biarin .env.example tetep dilacak buat contoh
-
 node_modules
 dist
 dist-ssr
@@ -29,4 +23,5 @@ dist-ssr
 *.sln
 *.sw?
 
+.env
 
