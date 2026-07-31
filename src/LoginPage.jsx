@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [noHp, setnumber] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
@@ -12,8 +12,8 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
-    if (!email || !password) {
-      setError("Isi email dan kata sandi terlebih dahulu.");
+    if (!noHp || !password) {
+      setError("Isi nomor handphone dan kata sandi terlebih dahulu.");
       return;
     }
 
@@ -21,7 +21,7 @@ export default function LoginPage() {
     // Simulasi proses autentikasi — ganti dengan pemanggilan API sesungguhnya
     setTimeout(() => {
       setLoading(false);
-      console.log("Login attempt:", { email, remember });
+      console.log("Login attempt:", { noHp, remember });
     }, 1200);
   };
 
@@ -352,16 +352,16 @@ export default function LoginPage() {
             {error && <div className="lp-error">{error}</div>}
 
             <div className="lp-field">
-              <label className="lp-label" htmlFor="email">Email</label>
+              <label className="lp-label" htmlFor="noHp">Nomor Handphone</label>
               <div className="lp-input-wrap">
                 <input
-                  id="email"
-                  type="email"
+                  id="noHp"
+                  type="noHpl"
                   className="lp-input"
-                  placeholder="nama@contoh.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
+                  placeholder="masukkan nomor handphone"
+                  value={noHp}
+                  onChange={(e) => setnumber(e.target.value)}
+                  autoComplete="noHp"
                 />
               </div>
             </div>
