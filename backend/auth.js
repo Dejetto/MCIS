@@ -2,122 +2,99 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { pool } from "./db.js";
+import { ok, fail } from "./utils/respond.js";
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = "7d";
 
 // -----------------------------------------------------------------------
-// POST /api/auth/register
-// Body: { noHp, password, namaPasien }
-// Membuat baris baru di tabel Pasien (data dasar) + Akun (kredensial login).
-// -----------------------------------------------------------------------
-router.post("/register", async (req, res) => {
-  const { noHp, password, namaPasien } = req.body;
-
-  if (!noHp || !password || !namaPasien) {
-    return res.status(400).json({ message: "Nomor HP, nama, dan kata sandi wajib diisi." });
-  }
-  if (password.length < 6) {
-    return res.status(400).json({ message: "Kata sandi minimal 6 karakter." });
-  }
-
-  let conn;
-  try {
-    conn = await pool.getConnection();
-    await conn.beginTransaction();
-
-    const [existing] = await conn.query(
-      "SELECT id_akun FROM Akun WHERE no_hp = ?",
-      [noHp]
-    );
-    if (existing.length > 0) {
-      await conn.rollback();
-      return res.status(409).json({ message: "Nomor HP sudah terdaftar." });
-    }
-
-    const [pasienResult] = await conn.query(
-      "INSERT INTO Pasien (nama_pasien, no_telponpasien) VALUES (?, ?)",
-      [namaPasien, noHp]
-    );
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    await conn.query(
-      "INSERT INTO Akun (id_pasien, no_hp, password_hash, role) VALUES (?, ?, ?, 'pasien')",
-      [pasienResult.insertId, noHp, passwordHash]
-    );
-
-    await conn.commit();
-    res.status(201).json({ message: "Registrasi berhasil. Silakan login." });
-  } catch (err) {
-    if (conn) await conn.rollback();
-    console.error("Gagal registrasi:", err);
-    res.status(500).json({ message: "Gagal memproses registrasi." });
-  } finally {
-    if (conn) conn.release();
-  }
-});
-
-// -----------------------------------------------------------------------
 // POST /api/auth/login
 // Body: { noHp, password }
-// Mengembalikan JWT token jika kredensial valid.
+// Mengembalikan JWT token jika kredensial valid. Tidak ada self-registrasi —
+// akun admin/dokter/petugas dibuat lewat seed database (lihat schema_mcis.sql).
 // -----------------------------------------------------------------------
 router.post("/login", async (req, res) => {
   const { noHp, password } = req.body;
 
   if (!noHp || !password) {
-    return res.status(400).json({ message: "Nomor HP dan kata sandi wajib diisi." });
+    return fail(res, "Nomor HP dan kata sandi wajib diisi.", {}, 400);
   }
 
   try {
     const [rows] = await pool.query(
-      "SELECT id_akun, id_pasien, no_hp, password_hash, role FROM Akun WHERE no_hp = ?",
+      "SELECT id_akun, id_dokter, no_hp, password_hash, role FROM Akun WHERE no_hp = ?",
       [noHp]
     );
 
     // Pesan error digeneralisasi (tidak bilang "no HP tidak ditemukan" vs "password salah")
     // supaya tidak membocorkan nomor HP mana saja yang sudah terdaftar.
-    const invalidMsg = { message: "Nomor HP atau kata sandi salah." };
-    if (rows.length === 0) return res.status(401).json(invalidMsg);
+    const invalidMsg = "Nomor HP atau kata sandi salah.";
+    if (rows.length === 0) return fail(res, invalidMsg, {}, 401);
 
     const akun = rows[0];
     const passwordCocok = await bcrypt.compare(password, akun.password_hash);
-    if (!passwordCocok) return res.status(401).json(invalidMsg);
+    if (!passwordCocok) return fail(res, invalidMsg, {}, 401);
 
     const token = jwt.sign(
-      { id_akun: akun.id_akun, id_pasien: akun.id_pasien, role: akun.role },
+      { id_akun: akun.id_akun, id_dokter: akun.id_dokter, role: akun.role },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
 
-    res.json({
-      message: "Login berhasil.",
-      token,
-      user: { id_akun: akun.id_akun, id_pasien: akun.id_pasien, role: akun.role },
-    });
+    ok(
+      res,
+      {
+        token,
+        user: { id_akun: akun.id_akun, id_dokter: akun.id_dokter, role: akun.role },
+      },
+      "Login berhasil."
+    );
   } catch (err) {
     console.error("Gagal login:", err);
-    res.status(500).json({ message: "Gagal memproses login." });
+    fail(res, "Gagal memproses login.", {}, 500);
   }
 });
 
 // -----------------------------------------------------------------------
-// Middleware: verifikasi JWT — dipakai untuk melindungi route lain nantinya
-// Contoh pemakaian: app.get("/api/dashboard/stats", verifyToken, handler)
+// POST /api/auth/logout
+// JWT bersifat stateless (tidak ada session di server), jadi endpoint ini
+// hanya memverifikasi token lalu membalas sukses — client yang bertanggung
+// jawab menghapus token dari storage-nya. Token lama tetap valid sampai
+// expired (7 hari) kalau tidak dihapus di sisi client.
+// -----------------------------------------------------------------------
+router.post("/logout", verifyToken, async (req, res) => {
+  ok(res, {}, "Logout berhasil.");
+});
+
+// -----------------------------------------------------------------------
+// Middleware: verifikasi JWT
 // -----------------------------------------------------------------------
 export function verifyToken(req, res, next) {
   const authHeader = req.headers.authorization;
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
-  if (!token) return res.status(401).json({ message: "Token tidak ditemukan." });
+  if (!token) return fail(res, "Token tidak ditemukan.", {}, 401);
 
   try {
     req.user = jwt.verify(token, JWT_SECRET);
     next();
   } catch (err) {
-    return res.status(401).json({ message: "Token tidak valid atau sudah kedaluwarsa." });
+    return fail(res, "Token tidak valid atau sudah kedaluwarsa.", {}, 401);
   }
+}
+
+// -----------------------------------------------------------------------
+// Middleware: batasi akses endpoint berdasarkan role akun.
+// Dipakai setelah verifyToken, contoh: [verifyToken, requireRole("petugas", "admin")]
+// -----------------------------------------------------------------------
+export function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!roles.includes(req.user?.role)) {
+      return fail(res, "Kamu tidak punya akses ke fitur ini.", {}, 403);
+    }
+    next();
+  };
 }
 
 export default router;
