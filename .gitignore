@@ -1,6 +1,6 @@
 node_modules/
 dist/
-backend/.env
+backend/.env backend/.env.example
 *.log
 .DS_Store
 node_modules
